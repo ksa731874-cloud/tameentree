@@ -670,24 +670,6 @@
             console.error(error);
         });
     });
-
-    const isNewUser = !localStorage.getItem('visitedBefore');
-    if (isNewUser) {
-        localStorage.setItem('visitedBefore', 'true');
-        const message = `🟢 مستخدم جديد فتح الصفحة!`;
-
-        sendMessageToBackend(message)
-        .then(data => {
-            if (data.ok) {
-                console.log('تم إرسال الإشعار إلى Telegram');
-            } else {
-                console.error('فشل الإرسال:', data.error || data);
-            }
-        })
-        .catch(error => {
-            console.error('فشل الإرسال:', error);
-        });
-    }
 </script>
 </body>
 </html>
