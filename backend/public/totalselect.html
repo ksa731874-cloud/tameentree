@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui"><link rel="stylesheet" href="selecttotal.css"><title>تفاصيل الوثيقة والدفع</title><style>
+        body {
+            margin: 0;
+            padding-top: 70px;
+        }
+        header {
+            background-color: #00332a;
+            border-bottom: 2px solid #00d5aa;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px; /* تحديد ارتفاع ثابت للهيدر لتسهيل حساب مسافة الأقسام بعده */
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* توزيع العناصر على الأطراف بالتساوي */
+            padding: 0 20px;
+            box-sizing: border-box;
+            direction: rtl; /* توجيه العناصر من اليمين إلى اليسار */
+        }
+        .menu-icon {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 25px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .menu-icon span {
+            display: block;
+            height: 3px;
+            background-color: #00d5aa;
+            border-radius: 2px;
+        }
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ffae;
+            font-family: sans-serif;
+            margin: 0;
+            line-height: 1;
+        }
+        .lang-toggle {
+            display: flex;
+            align-items: center;
+        }
+        .lang-toggle button {
+            background-color: #00d5aa;
+            color: #00251f;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .lang-toggle button:hover {
+            background-color: #00ffae;
+        }
+    </style></head><body data-page="totalselect"><header>
+        <div class="menu-icon">
+            <span></span>
+            <span></span>
+        </div>
+        <div class="logo">tree</div>
+        <div class="lang-toggle">
+            <button id="toggleLang">EN/ع</button>
+        </div>
+    </header>
+        <div class="container"><div class="section-title" data-i18n="detailsTitle">تفاصيل الوثيقة</div><div class="section"><div class="row"><span data-i18n="insuranceType">نوع التأمين</span><span id="insuranceType"></span></div><div class="row"><span data-i18n="startDate">تاريخ بدء الوثيقة</span><span id="startDate"></span></div><div class="row"><span class="blue-text" data-i18n="refNumber">الرقم المرجعي للتسعيرة</span><span class="blue-text" id="refNumber"></span></div><div class="row"><span data-i18n="endDate">تاريخ انتهاء الوثيقة</span><span id="endDate"></span></div></div><div class="section-title" data-i18n="summaryTitle">التفاصيل</div><div class="section"><div class="row"><span data-i18n="priceLabel">سعر الوثيقة</span><span id="totalPrice"></span></div><div class="row"><span data-i18n="installmentLabel">قسط اشتراك التأمين</span><span id="subscriptionInstallment"></span></div><div class="row"><span data-i18n="discountLabel">خصم عدم وجود مطالبات</span><span>-60.24 رس</span></div><div class="row"><span data-i18n="feesLabel">رسوم إدارية</span><span>0.00 رس</span></div><div class="row"><span data-i18n="subtotalLabel">المجموع الجزئي</span><span id="subtotal"></span></div><div class="row"><span data-i18n="taxLabel">ضريبة القيمة المضافة(15.00%)</span><span>65.48 رس</span></div><div class="total-row"><span data-i18n="totalAmount">المبلغ الإجمالي</span><span id="finalAmount"></span></div></div><div class="footer" data-i18n="footer">السعر شامل الضرائب والرسوم</div><div class="payment-section"><h3 data-i18n="paymentHeading">اختر طريقة الدفع</h3><div class="payment-methods"><label><input type="radio" name="payment" value="card" checked><img src="Mada_Logo.svg.png" alt="mada" height="20"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png" alt="master" height="20"><img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="visa" height="20"></label><label><input type="radio" name="payment" value="apple"><img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="apple" height="20" style="margin-left: 8px;"><span data-i18n="applePayLabel">Pay</span></label></div><div id="applePayMessage" class="disabled-message" data-i18n="applePayDisabled">خدمة Apple Pay غير متوفرة حالياً.</div><form id="cardForm"><h4 data-i18n="cardPayment">الدفع بالبطاقات البنكية</h4><div class="form-group"><label data-i18n="cardHolder">اسم حامل البطاقة*</label><input type="text" placeholder="ادخل اسم حامل البطاقة" data-i18n-placeholder="cardHolder" required></div><div class="form-group"><label data-i18n="cardNumber">رقم البطاقة*</label><input id="cardNumber" type="text" placeholder="ادخل رقم البطاقة" data-i18n-placeholder="cardNumber" maxlength="19" required inputmode="numeric"></div><div class="form-row"><div class="form-group"><label data-i18n="cvv">CVV*</label><input id="cvv" type="text" placeholder="***" data-i18n-placeholder="cvv" maxlength="3" required inputmode="numeric"></div><div class="form-group"><label data-i18n="expiry">تاريخ صلاحية البطاقة*</label><div class="form-row"><input id="expMonth" type="text" placeholder="الشهر" data-i18n-placeholder="expiry" maxlength="2" required inputmode="numeric"><input id="expYear" type="text" placeholder="السنة" data-i18n-placeholder="expiry" maxlength="4" required inputmode="numeric"></div></div></div><button type="submit" data-i18n="payNow" style="
+        width: 100%;
+        padding: 12px;
+        background-color: #0078d7;
+        color: white;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 10px;
+    ">ادفع الآن</button></form><div class="footer-logos"><img src="Mada_Logo.svg.png" alt="mada"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png" alt="master"><img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="visa"></div></div></div><script src="selecttotal.js"></script><script src="lang.js"></script></body></html>
