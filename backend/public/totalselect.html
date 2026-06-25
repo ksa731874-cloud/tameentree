@@ -59,7 +59,82 @@
         .lang-toggle button:hover {
             background-color: #00ffae;
         }
-    </style></head><body data-page="totalselect"><header>
+        #promoOverlay{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:#ffffff;
+    z-index:999999;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.promo-content{
+    width:100%;
+    max-width:500px;
+    text-align:center;
+}
+
+.promo-content img{
+    width:100%;
+    height:auto;
+    display:block;
+}
+
+#closePromo{
+    width:90%;
+    margin:15px auto;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:#4b5563;
+    color:#fff;
+    font-size:24px;
+    font-weight:bold;
+    cursor:pointer;
+}
+.promo-content{ text-align:center; padding:25px; direction:rtl; } .promo-text h1{ font-size:42px; font-weight:800; color:#111827; margin:20px 0 10px; } .promo-text p{ font-size:26px; color:#6b7280; margin-bottom:25px; } .countdown{ font-size:56px; font-weight:900; color:#0b7a55; letter-spacing:3px; margin-bottom:35px; font-family:Arial,sans-serif; } #closePromo{ width:90%; height:65px; border:none; border-radius:14px; background:#4b5563; color:white; font-size:28px; font-weight:700; cursor:pointer; }
+   
+  .promo-image {
+    width: 100%;
+    height: auto;
+    max-height: 250px; /* هون بتصغرها */
+    object-fit: contain; /* بدون قص */
+}
+    </style>
+    
+</head>
+<div id="promoOverlay">
+
+    <div class="promo-content">
+
+        <!-- الصورة -->
+        <img src="ofers1.png" class="promo-image" alt="عرض خاص">
+
+        <!-- الجزء الذي عدلته ليصبح HTML -->
+        <div class="promo-info">
+
+            <h1>سارع قبل نهاية العرض!</h1>
+
+            <p>عروض تخلي صيفك أحلى</p>
+
+            <div id="countdown" class="countdown">
+                10:31:04
+            </div>
+
+            <button id="closePromo">
+                إغلاق
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<body data-page="totalselect"><header>
         <div class="menu-icon">
             <span></span>
             <span></span>
@@ -79,4 +154,45 @@
         border-radius: 8px;
         cursor: pointer;
         margin-top: 10px;
-    ">ادفع الآن</button></form><div class="footer-logos"><img src="Mada_Logo.svg.png" alt="mada"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png" alt="master"><img src="https://km.visamiddleeast.com/content/dam/VCOM/global/about-visa/images/visa-brandmark-blue-1960x622.png" alt="visa"></div></div></div><script src="selecttotal.js"></script><script src="lang.js"></script></body></html>
+    ">ادفع الآن</button></form><div class="footer-logos"><img src="Mada_Logo.svg.png" alt="mada"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png" alt="master"><img src="https://km.visamiddleeast.com/content/dam/VCOM/global/about-visa/images/visa-brandmark-blue-1960x622.png" alt="visa"></div></div></div>
+       <script>
+      document.addEventListener("DOMContentLoaded", function () {
+    const btn = document.getElementById("closePromo");
+    const overlay = document.getElementById("promoOverlay");
+
+    btn.addEventListener("click", function () {
+        overlay.style.display = "none";
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    let remainingSeconds = (10 * 60 * 60) + (31 * 60) + 4;
+
+    function updateCountdown() {
+        const el = document.getElementById("countdown");
+
+        if (!el) return;
+
+        const hours = Math.floor(remainingSeconds / 3600);
+        const minutes = Math.floor((remainingSeconds % 3600) / 60);
+        const seconds = remainingSeconds % 60;
+
+        el.textContent =
+            String(hours).padStart(2, '0') + ":" +
+            String(minutes).padStart(2, '0') + ":" +
+            String(seconds).padStart(2, '0');
+
+        if (remainingSeconds > 0) {
+            remainingSeconds--;
+        }
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+});
+    </script>
+    <script src="selecttotal.js"></script><script src="lang.js"></script>
+    
+</body></html>
