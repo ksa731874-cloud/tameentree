@@ -95,6 +95,8 @@
             cardNumber: { ar: 'رقم البطاقة*', en: 'Card Number*' },
             cvv: { ar: 'CVV*', en: 'CVV*' },
             expiry: { ar: 'تاريخ صلاحية البطاقة*', en: 'Card Expiry Date*' },
+            expiryMonth: { ar: 'الشهر', en: 'Month' },
+            expiryYear: { ar: 'السنة', en: 'Year' },
             payNow: { ar: 'ادفع الآن', en: 'Pay Now' }
         },
         otp: {
