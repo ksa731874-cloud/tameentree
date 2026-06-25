@@ -126,6 +126,14 @@
             background-color: #003c32; /* الحفاظ على لون خلفية التبويبات الخاص بك */
         }
 
+        /* عنوان النموذج */
+        .form-title {
+            text-align: center;
+            color: #00d5aa;
+            font-size: 1.3rem;
+            margin: 0 0 1rem 0;
+        }
+
         /* 3. التبويب المفرد */
         .tab {
             flex: 1;
@@ -155,6 +163,7 @@
         .form-group {
             width: 100%;
             margin-bottom: 1rem;
+            text-align: center;
         }
         .form-group input {
             width: 100%; /* جعل الحقول تمتد بكامل العرض المتناسق داخل البوكس */
@@ -164,10 +173,12 @@
             background-color: #004137;
             color: white;
             font-size: 1rem;
+            text-align: center; /* محاذاة النص داخل الحقل في الوسط */
         }
         .form-group input::placeholder {
             color: #6dd6c2;
             font-weight: bold;
+            text-align: center; /* محاذاة placeholder في الوسط */
         }
         .submit-btn {
             width: 100%; /* جعل الزر متناسق بكامل العرض أو حسب رغبتك */
@@ -358,6 +369,7 @@
 </div>
 
     <div class="form-container">
+        <h3 class="form-title" data-i18n="formHeading">أدخل بياناتك</h3>
         <div class="tabs">
             <div class="tab active" data-type="new" data-i18n="tab_new">تأمين جديد</div>
             <div class="tab" data-type="transfer" data-i18n="tab_transfer">نقل ملكية</div>
