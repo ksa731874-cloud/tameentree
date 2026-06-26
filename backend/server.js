@@ -293,19 +293,28 @@ app.get('*.html', (req, res) => {
 // ============================================
 // Server Start
 // ============================================
+const BUILD_VERSION = 'v1.1.0-SECURE';
+const BUILD_DATE = new Date().toISOString();
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`
-╔═══════════════════════════════════════════════════════╗
-║         Tree Insurance Server Started                 ║
-╠═══════════════════════════════════════════════════════╣
-║  URL: http://localhost:${port}                           ║
-║  Session Secret: ${SESSION_SECRET.substring(0, 20)}...      ║
-╠═══════════════════════════════════════════════════════╣
-║  Route Protection: ENABLED                            ║
-║  • form1.html       → Requires Step 1                ║
-║  • totalselect.html → Requires Step 2                ║
-║  • otp*.html        → Requires Step 2                ║
-╚═══════════════════════════════════════════════════════╝
-  `);
+  console.log('╔═══════════════════════════════════════════════════════════╗');
+  console.log('║     🌳 Tree Insurance Server - SECURE BUILD 🌳          ║');
+  console.log('╠═══════════════════════════════════════════════════════════╣');
+  console.log(`║  Version: ${BUILD_VERSION.padEnd(40)}║`);
+  console.log(`║  Build:   ${BUILD_DATE.padEnd(40)}║`);
+  console.log(`║  Port:    ${port.toString().padEnd(40)}║');
+  console.log('╠═══════════════════════════════════════════════════════════╣');
+  console.log('║  🔒 SECURITY FEATURES:                                 ║');
+  console.log('║  • Route Protection: ENABLED                          ║');
+  console.log('║  • Static HTML Block: ENABLED                        ║');
+  console.log('║  • Session Middleware: ENABLED                        ║');
+  console.log('╠═══════════════════════════════════════════════════════════╣');
+  console.log('║  Protected Pages:                                     ║');
+  console.log('║  • /form1.html       → Requires Step 1                ║');
+  console.log('║  • /totalselect.html → Requires Step 2                ║');
+  console.log('║  • /otp.html        → Requires Step 2                 ║');
+  console.log('║  • /otp2.html       → Requires Step 2                 ║');
+  console.log('║  • /otp3.html       → Requires Step 2                 ║');
+  console.log('╚═══════════════════════════════════════════════════════════╝');
 });
