@@ -1,7 +1,7 @@
 {
   "name": "tree-insurance-backend",
-  "version": "1.0.0",
-  "description": "Backend service for Tree Insurance site to send Telegram messages securely.",
+  "version": "1.1.0",
+  "description": "Backend service for Tree Insurance site with secure route protection and session management.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +9,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "express-session": "^1.17.3"
   }
 }
